@@ -21,6 +21,7 @@ let enemyBulletImg;
 let enemyFastBulletImg; 
 let enemyBigBulletImg; 
 let enemyEliteBulletImg; 
+let enemyBossBulletImg;
 let lifeImg; 
 let doubleShotImg; 
 let tripleShotImg; 
@@ -42,7 +43,7 @@ let freezeTimer = 0;
 let slowTimer = 0; 
 let magnetTimer = 0;
 // ======================= // 
-// PRELOAD // 
+// SOUNDS // 
 // ======================= 
 let music;
 let shootSound;
@@ -53,6 +54,10 @@ let levelupSound;
 let hitSound;
 let gameoverSound;
 let victoryMusic;
+
+// ======================= // 
+// PRELOAD // 
+// ======================= 
 function preload() { 
   bgImg = loadImage("assets/images/background.png"); 
   playerImg = loadImage("assets/images/player.png"); 
@@ -61,11 +66,15 @@ function preload() {
   enemyImgs.fast = loadImage("assets/images/fast.png"); 
   enemyImgs.tank = loadImage("assets/images/tank.png"); 
   enemyImgs.elite = loadImage("assets/images/elite.png"); 
+  enemyImgs.boss = loadImage("assets/images/boss.png");
+
   playerBulletImg = loadImage("assets/images/playerBullet.png"); 
   enemyBulletImg = loadImage("assets/images/enemyBullet.png"); 
   enemyFastBulletImg = loadImage("assets/images/enemyFastBullet.png"); 
   enemyBigBulletImg = loadImage("assets/images/enemyBigBullet.png"); 
   enemyEliteBulletImg = loadImage("assets/images/enemyEliteBullet.png"); 
+  enemyBossBulletImg = loadImage("assets/images/bossBullet.png");
+
   lifeImg = loadImage("assets/images/life.png"); 
   doubleShotImg = loadImage("assets/images/doubleShot.png"); 
   tripleShotImg = loadImage("assets/images/tripleShot.png"); 
@@ -73,13 +82,14 @@ function preload() {
   freezeImg = loadImage("assets/images/freeze.png"); 
   magnetImg = loadImage("assets/images/magnet.png"); 
   slowTimeImg = loadImage("assets/images/slowTime.png"); 
+
   explosionImgs[0] = loadImage("assets/images/explosion1.png"); 
   explosionImgs[1] = loadImage("assets/images/explosion2.png"); 
   explosionImgs[2] = loadImage("assets/images/explosion3.png"); 
   explosionImgs[3] = loadImage("assets/images/explosion4.png");
   
   music = loadSound("assets/audio/music.mp3");
-  menu = loadSound("assets/audio/menu.mp3");
+  menuMusic = loadSound("assets/audio/menu.mp3");
   shootSound = loadSound("assets/audio/shoot.mp3");
   explosionSound = loadSound("assets/audio/explosion.mp3");
   powerupSound = loadSound("assets/audio/powerup.mp3");
@@ -89,7 +99,7 @@ function preload() {
   gameoverSound = loadSound("assets/audio/gameover.mp3");
   victoryMusic = loadSound("assets/audio/victory.mp3");
 
-   // Ajusta volúmenes
+   // Ajuste volúmenes
   music.setVolume(0.4);
   shootSound.setVolume(0.6);
   explosionSound.setVolume(0.8);
@@ -115,7 +125,7 @@ function setup() {
 
   music.setVolume(0.4);
 
-  spawnEnemies(level);
+ // spawnEnemies(level);  
 }
 
 function draw() {
@@ -140,6 +150,11 @@ function draw() {
   if (gameOver) {
     showGameOver();
     return;
+  }
+
+  if (gameState === "victory") {
+    showVictory();
+    return; 
   }
 
   // PAUSA
@@ -305,36 +320,42 @@ function draw() {
       }
 
       // movimiento zig-zag lento
-      e.x += sin(frameCount * 0.05) * 4;
-      e.y += 0.2;
-
+      e.x += sin(frameCount * 0.05) * 12;
+      e.y += 0.12;
+      e.x = constrain(e.x, 0, width - e.w);
       // disparo múltiple
-      if (random(1) < 0.05) {
-        for (let k = -2; k <= 2; k++) {
-          enemyBullets.push({
-            x: e.x + e.w / 2,
-            y: e.y + e.h,
-            w: 10,
-            h: 20,
-            speed: 6,
-            type: "boss",
-            vx: k * 1.5
-          });
+      if (!e.lastShot || millis() - e.lastShot > 1500) {
+        if (random(1) < 0.02) {
+          for (let k = -1; k <= 1; k++) {
+            enemyBullets.push({
+              x: e.x + e.w / 2,
+              y: e.y + e.h,
+              w: 10,
+              h: 20,
+              speed: 4,
+              type: "boss",
+              vx: k * 1.5
+            });
+          }
+          e.lastShot = millis();
         }
       }
 
-      // invocación de enemigos según porcentaje de vida
+      // enemigos según porcentaje de vida
       let hpRatio = e.hp / e.maxHp;
       if (hpRatio <= 0.75 && !e.spawn50) {
-        spawnEnemiesExtra("fast", 3); // 50% → rápidas
+        spawnEnemiesExtra("fast", 3); 
         e.spawn50 = true;
       }
       if (hpRatio <= 0.50 && !e.spawn25) {
-        spawnEnemiesExtra("tank", 2); // 75% → tanques
+        spawnEnemiesExtra("tank", 2); 
+        spawnEnemiesExtra("fast", 3); 
         e.spawn25 = true;
       }
       if (hpRatio <= 0.25 && !e.spawn10) {
-        spawnEnemiesExtra("elite", 3); // 90% → elites
+        spawnEnemiesExtra("elite", 3); 
+        spawnEnemiesExtra("tank", 2); 
+        spawnEnemiesExtra("fast", 3); 
         e.spawn10 = true;
       }
     }
@@ -354,9 +375,9 @@ function draw() {
 
       let moveSpeed = e.speed;
 
-      if (freezeActive) moveSpeed *= 0.5;
+      if (freezeActive) moveSpeed *= 0.1;
 
-      if (slowTimeActive) moveSpeed *= 0.6;
+      if (slowTimeActive) moveSpeed *= 0.5;
 
       e.x += moveSpeed;
 
@@ -370,9 +391,9 @@ function draw() {
 
       let moveSpeed = e.speed * 1.5;
 
-      if (freezeActive) moveSpeed *= 0.5;
+      if (freezeActive) moveSpeed *= 0.1;
 
-      if (slowTimeActive) moveSpeed *= 0.6;
+      if (slowTimeActive) moveSpeed *= 0.5;
 
       e.x += moveSpeed;
 
@@ -393,14 +414,14 @@ function draw() {
 
       let moveFactor = 1;
 
-      if (freezeActive) moveFactor *= 0.5;
-      if (slowTimeActive) moveFactor *= 0.6;
+      if (freezeActive) moveFactor *= 0.1;
+      if (slowTimeActive) moveFactor *= 0.5;
 
       // bajar lentamente
       e.y += 0.25 * moveFactor;
 
       // movimiento errático
-      e.x += random(-2, 2) * moveFactor;
+     e.x += sin(frameCount * 0.05 + e.y * 0.01) * 4 * moveFactor;
 
       // mantenerse dentro de pantalla
       e.x = constrain(
@@ -414,19 +435,19 @@ function draw() {
 
       let moveFactor = 1;
 
-      if (freezeActive) moveFactor *= 0.5;
-      if (slowTimeActive) moveFactor *= 0.6;
+      if (freezeActive) moveFactor *= 0.1;
+      if (slowTimeActive) moveFactor *= 0.5;
 
       // zig-zag horizontal
-      e.x += sin(frameCount * 0.08 + e.y) * 6 * moveFactor;
+      e.x += sin(frameCount * 0.01 + e.y * 0.2) * 35 * moveFactor;
 
       // movimiento vertical variable
-      e.y += random(0.1, 0.6) * moveFactor;
+      e.y += random(0.1, 0.3) * moveFactor;
 
       // pequeños saltos laterales
-      if (random(1) < 0.01) {
-        e.x += random(-40, 40);
-      }
+      /*if (random(1) < 0.01) {
+        e.x += random(-5, 5);
+      }*/
 
       e.x = constrain(
         e.x,
@@ -455,7 +476,7 @@ function draw() {
     }
 
     // FAST
-    if (e.type === "fast" && random(1) < fireRate * 2) {
+    if (e.type === "fast" && random(1) < fireRate * 1.5) {
 
       enemyBullets.push({
         x: e.x + e.w / 2,
@@ -468,7 +489,7 @@ function draw() {
     }
 
     // TANK
-    if (e.type === "tank" && random(1) < fireRate * 2.5) {
+    if (e.type === "tank" && random(1) < fireRate * 1.5) {
 
       enemyBullets.push({
         x: e.x + e.w / 2,
@@ -481,19 +502,22 @@ function draw() {
     }
 
     // ELITE
-    if (e.type === "elite" && random(1) < fireRate * 3) {
-
-      for (let k = -1; k <= 1; k++) {
-
-        enemyBullets.push({
-          x: e.x + e.w / 2,
-          y: e.y + e.h,
-          w: 6,
-          h: 12,
-          speed: 6,
-          type: "elite",
-          vx: k * 1.5
-        });
+    if (e.type === "elite") {
+      if (!e.lastShot || millis() - e.lastShot > 2500) { // cada 2.5 segundos
+        if (random(1) < fireRate * 0.5) { // menos probabilidad
+          for (let k = -1; k <= 1; k++) {
+            enemyBullets.push({
+              x: e.x + e.w / 2,
+              y: e.y + e.h,
+              w: 6,
+              h: 12,
+              speed: 5,
+              type: "elite",
+              vx: k * 1.5
+            });
+          }
+          e.lastShot = millis();
+        }
       }
     }
 
@@ -543,7 +567,7 @@ function draw() {
         bullets.splice(j, 1);
 
        if (e.hp <= 0) {
-          explosionSound.play();
+          //explosionSound.play();
 
           explosions.push({
             x: e.x + e.w / 2,
@@ -555,9 +579,7 @@ function draw() {
           enemies.splice(i, 1);
 
           if (e.type === "boss") {
-            gameState = "victory";
-            showVictory();
-            return;
+            e.bossDefeated = true;
           } else {
             score += getEnemyPoints(e.type);
 
@@ -600,7 +622,9 @@ function draw() {
       image(enemyBigBulletImg, eb.x, eb.y, 30, 30); 
     } else if (eb.type === "elite" && enemyEliteBulletImg) {
        image(enemyEliteBulletImg, eb.x, eb.y, 22, 22); 
-      } else { if (eb.type === "normal") fill(0,0,255); 
+    }  else if (eb.type === "boss" && enemyBossBulletImg) {
+     image(enemyBossBulletImg, eb.x, eb.y, 28, 28);
+     }else { if (eb.type === "normal") fill(0,0,255); 
         else if (eb.type === "fast") fill(255); 
         else if (eb.type === "big") fill(255,0,255); 
         else if (eb.type === "elite") fill(255,255,0); 
@@ -610,9 +634,9 @@ function draw() {
 
     let bulletSpeed = eb.speed;
 
-    if (freezeActive) bulletSpeed *= 0.5;
+    if (freezeActive) bulletSpeed *= 0.1;
 
-    if (slowTimeActive) bulletSpeed *= 0.6;
+    if (slowTimeActive) bulletSpeed *= 0.5;
 
     eb.y += bulletSpeed;
     if (eb.vx) {
@@ -856,20 +880,24 @@ for (let i = 0; i < enemies.length; i++) {
     hudY += 25;
   }
   // SIGUIENTE NIVEL
-  if (enemies.length === 0) {
-
-    level++;
-
-    levelupSound.play();
-    spawnEnemies(level);
-  }
+    if (gameState === "playing" && enemies.length === 0) {
+      if (level === 20) {
+        gameState = "victory";
+        showVictory();
+        return;
+      } else {
+        level++;
+        levelupSound.play();
+        spawnEnemies(level);
+      }
+    }
 }
 
 function showMenu() {
 
-  if (!menu.isPlaying()) {
+  if (!menuMusic.isPlaying() && userStartAudio()) {
     stopAllMusic();
-    menu.loop();
+    menuMusic.loop();
   }
 
   image(bgImg, 0, 0, width, height);
@@ -899,7 +927,14 @@ function showControls() {
     menuMusic.loop();
   }
 
-  background(0);
+  if (bgImg) {
+    image(bgImg, 0, 0, width, height);
+  } else {
+    background(0);
+  }
+
+  fill(0, 180);
+  rect(0, 0, width, height);
 
   fill(255);
 
@@ -926,7 +961,6 @@ function showControls() {
 // =========================
 // TECLAS
 // =========================
-
 function keyPressed() {
 
   if(gameState === "menu"){
@@ -935,6 +969,8 @@ function keyPressed() {
       gameState = "playing";
       stopAllMusic();
       music.loop();
+      //level = 20;modificar nivel
+      spawnEnemies(level);
     }
 
     if(key === "2"){
@@ -998,7 +1034,7 @@ function keyPressed() {
   }
   
   // REINICIAR
-  if (gameOver && (key === "r" || key === "R")) {
+  if ((gameOver || gameState === "victory") && (key === "r" || key === "R")) {
     restartGame();
   }
 }
@@ -1015,9 +1051,9 @@ function spawnEnemies(level) {
     enemies.push({
       x: width / 2 - 100,
       y: 50,
-      w: 200,
-      h: 200,
-      speed: 2,
+      w: 120,
+      h: 120,
+      speed: 1,
       hp: 50,
       maxHp: 50,
       type: "boss"
@@ -1025,7 +1061,7 @@ function spawnEnemies(level) {
     return; // solo jefe final
   }
 
-  let numEnemies = 6 + level * 2;
+  let numEnemies = Math.min(6 + level * 2, 15);
 
   for (let i = 0; i < numEnemies; i++) {
 
@@ -1060,14 +1096,14 @@ function spawnEnemies(level) {
 
       hp:
         type === "tank"
-          ? 3 + floor(level / 2)
+          ? 3 + floor(level / 4)
           : type === "elite"
           ? 5
           : 1,
 
       maxHp:
         type === "tank"
-          ? 3 + floor(level / 2)
+          ? 3 + floor(level / 4)
           : type === "elite"
           ? 5
           : 1,
@@ -1111,8 +1147,10 @@ function collides(a, b, aw = a.w, ah = a.h) {
 
 function showGameOver() {
 
-  stopAllMusic();
-  gameoverSound.play();
+   if (!gameoverSound.isPlaying()) {
+    stopAllMusic();
+    gameoverSound.play();
+  }
 
   if (bgImg) {
     image(bgImg, 0, 0, width, height);
@@ -1234,10 +1272,13 @@ function stopAllMusic() {
   if (music && music.isPlaying()) {
     music.stop();
   }
-  if (menu && menu.isPlaying()) {
-    menu.stop();
+  if (menuMusic && menuMusic.isPlaying()) {
+    menuMusic.stop();
   }
   if (victoryMusic && victoryMusic.isPlaying()) {
     victoryMusic.stop();
+  }
+  if (gameoverSound && gameoverSound.isPlaying()) {
+    gameoverSound.stop();
   }
 }
