@@ -55,6 +55,7 @@ let hitSound;
 let gameoverSound;
 let victoryMusic;
 
+let gameoverSoundPlayed = false;
 // ======================= // 
 // PRELOAD // 
 // ======================= 
@@ -1150,6 +1151,7 @@ function showGameOver() {
    if (!gameoverSound.isPlaying()) {
     stopAllMusic();
     gameoverSound.play();
+    gameoverSoundPlayed = true;
   }
 
   if (bgImg) {
@@ -1249,8 +1251,13 @@ function restartGame() {
   freezeTimer = 0;
   slowTimer = 0;
 
+  gameoverSoundPlayed = false;
+   
   gameState = "menu";
   spawnEnemies(level);
+
+  stopAllMusic();
+  music.loop();
 }
 
 function spawnEnemiesExtra(type, count) {
